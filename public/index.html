@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rullzye Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style> @media print { .no-print { display: none !important; } } </style>
+</head>
+<body class="bg-[#f4f7fe] text-gray-800 font-sans">
+
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative flex flex-col">
+        <header class="bg-indigo-600 p-6 rounded-b-[2rem] text-white no-print">
+            <h1 id="headerName" class="text-2xl font-black tracking-wide uppercase"><i class="fas fa-bolt text-yellow-400"></i> TOKO DIGITAL</h1>
+            <p class="text-indigo-200 text-xs mt-1">Layanan Top Up Otomatis 24 Jam</p>
+        </header>
+
+        <main id="view-home" class="p-5 -mt-4 flex-grow">
+            <div id="orderModal" class="hidden bg-white p-5 rounded-2xl border border-indigo-100 shadow-lg mb-6">
+                <div class="flex justify-between items-center mb-3 border-b pb-2">
+                    <h3 class="font-bold text-gray-800">Detail Pemesanan</h3>
+                    <button onclick="document.getElementById('orderModal').classList.add('hidden')" class="text-red-500"><i class="fas fa-times"></i></button>
+                </div>
+                <p id="selName" class="text-sm font-bold text-indigo-600 mb-3"></p>
+                <input type="hidden" id="selId"><input type="hidden" id="selPrice">
+                
+                <input type="text" id="targetInput" placeholder="Masukkan ID / No HP..." class="w-full border-2 border-gray-200 p-3 rounded-xl focus:border-indigo-500 outline-none mb-4 text-sm font-bold">
+                <button id="btnBuy" onclick="processOrder()" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-md hover:bg-indigo-700 transition">
+                    Lanjutkan Pembayaran
+                </button>
+            </div>
+
+            <div id="product-list" class="space-y-3">
+                <p class="text-center text-gray-400 py-10 animate-pulse">Memuat Produk...</p>
+            </div>
+        </main>
+
+        <main id="view-invoice" class="hidden p-5 flex-grow">
+            <div class="border border-gray-200 rounded-3xl p-6 shadow-lg bg-white text-center relative overflow-hidden">
+                <div class="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-check text-3xl"></i></div>
+                <h2 class="text-2xl font-black text-gray-800">INVOICE</h2>
+                <p id="invId" class="text-xs font-bold text-gray-400 mb-5">INV-000</p>
+
+                <div class="text-left text-sm space-y-2 border-t border-b border-dashed py-4 mb-5">
+                    <div class="flex justify-between"><span class="text-gray-500">Produk:</span><span id="invName" class="font-bold text-right w-1/2"></span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Tujuan:</span><span id="invTarget" class="font-bold"></span></div>
+                    <div class="flex justify-between mt-2 pt-2 border-t"><span class="text-gray-500 font-bold">Total Tagihan:</span><span id="invPrice" class="font-black text-lg text-orange-500"></span></div>
+                </div>
+
+                <p class="text-xs font-bold text-gray-500 mb-2 uppercase">Scan QRIS Untuk Bayar</p>
+                <img id="invQris" src="" class="w-48 h-48 mx-auto border-2 border-dashed border-indigo-200 p-2 rounded-xl mb-4">
+            </div>
+
+            <div class="mt-6 space-y-3 no-print">
+                <button onclick="window.print()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl"><i class="fas fa-download"></i> Simpan Invoice</button>
+                <button onclick="location.reload()" class="w-full border-2 text-gray-700 font-bold py-3 rounded-xl"><i class="fas fa-home"></i> Kembali ke Awal</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Init Store Name
+        fetch('/api/store-info').then(r => r.json()).then(d => {
+            if(d.storeName) document.getElementById('headerName').innerHTML = `<i class="fas fa-bolt text-yellow-400"></i> ${d.storeName.toUpperCase()}`;
+        });
+
+        // Load Products
+        fetch('/api/products').then(r => r.json()).then(data => {
+            const list = document.getElementById('product-list');
+            if(data.success && data.products.length > 0) {
+                list.innerHTML = data.products.map(p => `
+                    <div onclick="openModal('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price})" class="bg-white border p-4 rounded-2xl flex justify-between items-center cursor-pointer hover:border-indigo-500 transition">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-indigo-50 p-3 rounded-xl text-indigo-600"><i class="fas fa-gamepad"></i></div>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-800 leading-tight">${p.name}</h4>
+                                <p class="text-indigo-600 font-black text-sm mt-1">Rp ${p.price.toLocaleString('id-ID')}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = `<div class="text-center py-10 text-red-500 font-bold">${data.message}</div>`;
+            }
+        });
+
+        function openModal(id, name, price) {
+            document.getElementById('selId').value = id;
+            document.getElementById('selName').innerText = name;
+            document.getElementById('selPrice').value = price;
+            document.getElementById('targetInput').value = '';
+            document.getElementById('orderModal').classList.remove('hidden');
+            document.getElementById('orderModal').scrollIntoView({behavior: 'smooth', block: 'center'});
+        }
+
+        async function processOrder() {
+            const target = document.getElementById('targetInput').value.trim();
+            if(!target) return alert("Masukkan nomor tujuan!");
+            
+            const btn = document.getElementById('btnBuy');
+            btn.innerText = "Memproses..."; btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/order', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        service: document.getElementById('selId').value,
+                        target: target,
+                        productName: document.getElementById('selName').innerText,
+                        displayPrice: document.getElementById('selPrice').value
+                    })
+                });
+                const data = await res.json();
+
+                if(data.status && data.invoice) {
+                    document.getElementById('invId').innerText = data.invoice.orderId;
+                    document.getElementById('invName').innerText = data.invoice.productName;
+                    document.getElementById('invTarget').innerText = data.invoice.target;
+                    document.getElementById('invPrice').innerText = "Rp " + Number(data.invoice.amount).toLocaleString('id-ID');
+                    document.getElementById('invQris').src = data.invoice.qr_url;
+
+                    document.getElementById('view-home').classList.add('hidden');
+                    document.getElementById('view-invoice').classList.remove('hidden');
+                    window.scrollTo(0,0);
+                } else {
+                    alert(data.message); // Menampilkan pesan error asli!
+                }
+            } catch (e) {
+                alert("Gangguan koneksi.");
+            } finally {
+                btn.innerText = "Lanjutkan Pembayaran"; btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

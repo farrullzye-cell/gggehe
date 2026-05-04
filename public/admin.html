@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Rullzye</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white h-screen flex items-center justify-center p-4 font-sans">
+
+    <div id="login-section" class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm">
+        <h2 class="text-2xl font-bold mb-6 text-center text-indigo-400">Admin Login</h2>
+        <input type="password" id="adminPass" placeholder="Masukkan Password..." class="w-full bg-gray-700 p-3 rounded-lg mb-4 text-white outline-none focus:ring-2 focus:ring-indigo-500">
+        <button onclick="login()" class="w-full bg-indigo-600 hover:bg-indigo-700 p-3 rounded-lg font-bold transition">Masuk</button>
+    </div>
+
+    <div id="dashboard-section" class="hidden bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-indigo-400">⚙️ Pengaturan Toko</h2>
+            <a href="/" class="text-sm text-gray-400 hover:text-white underline">Lihat Toko</a>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-400 uppercase font-bold">Nama Toko</label>
+                <input type="text" id="storeName" class="w-full bg-gray-700 p-3 rounded-lg mt-1 text-white outline-none">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 uppercase font-bold">API Key Premku</label>
+                <input type="text" id="apiKey" class="w-full bg-gray-700 p-3 rounded-lg mt-1 text-white outline-none">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 uppercase font-bold">Keuntungan per Produk (Rp)</label>
+                <input type="number" id="profit" class="w-full bg-gray-700 p-3 rounded-lg mt-1 text-white outline-none">
+            </div>
+            
+            <button onclick="saveSettings()" class="w-full bg-green-600 hover:bg-green-700 p-3 rounded-lg font-bold transition mt-4">Simpan Perubahan</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPass = '';
+
+        async function login() {
+            currentPass = document.getElementById('adminPass').value;
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ password: currentPass })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                
+                document.getElementById('storeName').value = data.config.storeName;
+                document.getElementById('apiKey').value = data.config.apiKey;
+                document.getElementById('profit').value = data.config.profit;
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function saveSettings() {
+            const storeName = document.getElementById('storeName').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const profit = document.getElementById('profit').value;
+
+            const res = await fetch('/api/admin/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ storeName, apiKey, profit, password: currentPass })
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
